@@ -61,8 +61,8 @@ variable "autoscaler_config" {
       }))
       metrics = optional(list(object({
         name                       = string
-        type                       = optional(string) # GAUGE, DELTA_PER_SECOND, DELTA_PER_MINUTE
-        target_value               = optional(number)
+        type                       = string # GAUGE, DELTA_PER_SECOND, DELTA_PER_MINUTE
+        target_value               = number
         single_instance_assignment = optional(number)
         time_series_filter         = optional(string)
       })))

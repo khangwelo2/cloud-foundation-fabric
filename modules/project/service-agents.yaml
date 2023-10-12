@@ -155,7 +155,6 @@
   service_agent: "service-%s@gcp-sa-datapipelines.iam.gserviceaccount.com"
 - name: "dataplex"
   service_agent: "service-%s@gcp-sa-dataplex.iam.gserviceaccount.com"
-  jit: true # roles/dataplex.serviceAgent
 - name: "dataproc"
   service_agent: "service-%s@dataproc-accounts.iam.gserviceaccount.com"
 - name: "datastream"
@@ -221,7 +220,6 @@
   service_agent: "service-%s@gcp-sa-healthcare.iam.gserviceaccount.com"
 - name: "iap"
   service_agent: "service-%s@gcp-sa-iap.iam.gserviceaccount.com"
-  jit: true
 - name: "identitytoolkit"
   service_agent: "service-%s@gcp-sa-identitytoolkit.iam.gserviceaccount.com"
 - name: "ids"

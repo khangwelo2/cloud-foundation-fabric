@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-variable "activation_policy" {
-  description = "This variable specifies when the instance should be active. Can be either ALWAYS, NEVER or ON_DEMAND. Default is ALWAYS."
-  type        = string
-  default     = "ALWAYS"
-  validation {
-    condition     = var.activation_policy == "NEVER" || var.activation_policy == "ON_DEMAND" || var.activation_policy == "ALWAYS"
-    error_message = "The variable activation_policy must be ALWAYS, NEVER or ON_DEMAND."
-  }
-  nullable = false
-}
 
 variable "allocated_ip_ranges" {
   description = "(Optional)The name of the allocated ip range for the private ip CloudSQL instance. For example: \"google-managed-services-default\". If set, the instance ip will be created in the allocated range. The range name must comply with RFC 1035. Specifically, the name must be 1-63 characters long and match the regular expression a-z?."
@@ -80,17 +70,9 @@ variable "databases" {
 }
 
 variable "deletion_protection" {
-  description = "Prevent terraform from deleting instances."
+  description = "Allow terraform to delete instances."
   type        = bool
-  default     = true
-  nullable    = false
-}
-
-variable "deletion_protection_enabled" {
-  description = "Set Google's deletion protection attribute which applies across all surfaces (UI, API, & Terraform)."
-  type        = bool
-  default     = true
-  nullable    = false
+  default     = false
 }
 
 variable "disk_size" {
@@ -115,17 +97,6 @@ variable "flags" {
   description = "Map FLAG_NAME=>VALUE for database-specific tuning."
   type        = map(string)
   default     = null
-}
-
-variable "insights_config" {
-  description = "Query Insights configuration. Defaults to null which disables Query Insights."
-  type = object({
-    query_string_length     = optional(number, 1024)
-    record_application_tags = optional(bool, false)
-    record_client_address   = optional(bool, false)
-    query_plans_per_minute  = optional(number, 5)
-  })
-  default = null
 }
 
 variable "ipv4_enabled" {
@@ -185,12 +156,6 @@ variable "replicas" {
   default = {}
 }
 
-variable "require_ssl" {
-  description = "Enable SSL connections only."
-  type        = bool
-  default     = null
-}
-
 variable "root_password" {
   description = "Root password of the Cloud SQL instance. Required for MS SQL Server."
   type        = string
@@ -207,4 +172,3 @@ variable "users" {
   type        = map(string)
   default     = null
 }
-

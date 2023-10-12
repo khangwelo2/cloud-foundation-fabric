@@ -28,7 +28,7 @@ locals {
     : var.router_config.name
   )
   vpn_gateway = (
-    var.vpn_gateway_create != null
+    var.vpn_gateway_create
     ? try(google_compute_ha_vpn_gateway.ha_gateway[0].self_link, null)
     : var.vpn_gateway
   )
@@ -36,7 +36,7 @@ locals {
 }
 
 resource "google_compute_ha_vpn_gateway" "ha_gateway" {
-  count   = var.vpn_gateway_create != null ? 1 : 0
+  count   = var.vpn_gateway_create ? 1 : 0
   name    = var.name
   project = var.project_id
   region  = var.region
@@ -48,7 +48,7 @@ resource "google_compute_external_vpn_gateway" "external_gateway" {
   name            = "${var.name}-${each.key}"
   project         = var.project_id
   redundancy_type = each.value.redundancy_type
-  description     = each.value.description
+  description     = "Terraform managed external VPN gateway"
   dynamic "interface" {
     for_each = each.value.interfaces
     content {

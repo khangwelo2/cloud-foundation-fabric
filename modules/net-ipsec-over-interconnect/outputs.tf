@@ -24,7 +24,7 @@ output "bgp_peers" {
 
 output "external_gateway" {
   description = "External VPN gateway resource."
-  value       = try(google_compute_external_vpn_gateway.default[0], null)
+  value       = local.peer_gateway
 }
 
 output "id" {

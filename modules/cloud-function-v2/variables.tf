@@ -26,7 +26,6 @@ variable "bucket_config" {
 variable "bucket_name" {
   description = "Name of the bucket that will be used for the function code. It will be created with prefix prepended if bucket_config is not null."
   type        = string
-  nullable    = false
 }
 
 variable "build_worker_pool" {
@@ -153,7 +152,7 @@ variable "trigger_config" {
     event_filters = optional(list(object({
       attribute = string
       value     = string
-      operator  = optional(string)
+      operator  = string
     })), [])
     service_account_email  = optional(string)
     service_account_create = optional(bool, false)
@@ -180,3 +179,5 @@ variable "vpc_connector_config" {
   })
   default = null
 }
+
+

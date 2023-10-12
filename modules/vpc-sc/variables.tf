@@ -72,14 +72,13 @@ variable "egress_policies" {
   description = "Egress policy definitions that can be referenced in perimeters."
   type = map(object({
     from = object({
-      identity_type = optional(string)
+      identity_type = optional(string, "ANY_IDENTITY")
       identities    = optional(list(string))
     })
     to = object({
       operations = optional(list(object({
-        method_selectors     = optional(list(string))
-        permission_selectors = optional(list(string))
-        service_name         = string
+        method_selectors = optional(list(string))
+        service_name     = string
       })), [])
       resources              = optional(list(string))
       resource_type_external = optional(bool, false)
@@ -89,11 +88,10 @@ variable "egress_policies" {
   nullable = false
   validation {
     condition = alltrue([
-      for k, v in var.egress_policies :
-      v.from.identity_type == null || contains([
+      for k, v in var.egress_policies : contains([
         "IDENTITY_TYPE_UNSPECIFIED", "ANY_IDENTITY",
-        "ANY_USER", "ANY_SERVICE_ACCOUNT"
-      ], coalesce(v.from.identity_type, "-"))
+        "ANY_USER", "ANY_SERVICE_ACCOUNT", ""
+      ], v.from.identity_type)
     ])
     error_message = "Invalid `from.identity_type` value in egress policy."
   }
@@ -110,9 +108,8 @@ variable "ingress_policies" {
     })
     to = object({
       operations = optional(list(object({
-        method_selectors     = optional(list(string))
-        permission_selectors = optional(list(string))
-        service_name         = string
+        method_selectors = optional(list(string))
+        service_name     = string
       })), [])
       resources = optional(list(string))
     })
@@ -127,7 +124,7 @@ variable "ingress_policies" {
         "ANY_USER", "ANY_SERVICE_ACCOUNT"
       ], coalesce(v.from.identity_type, "-"))
     ])
-    error_message = "Invalid `from.identity_type` value in ingress policy."
+    error_message = "Invalid `from.identity_type` value in eress policy."
   }
 }
 

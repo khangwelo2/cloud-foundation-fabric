@@ -147,6 +147,9 @@ resource "google_container_node_pool" "nodepool" {
       var.node_config.spot == true && var.node_config.preemptible != true
     )
     tags = var.tags
+    taint = (
+      var.taints == null ? [] : concat(var.taints, local.taints_windows)
+    )
 
     dynamic "ephemeral_storage_config" {
       for_each = var.node_config.ephemeral_ssd_count != null ? [""] : []
@@ -212,14 +215,6 @@ resource "google_container_node_pool" "nodepool" {
       content {
         enable_secure_boot          = var.node_config.shielded_instance_config.enable_secure_boot
         enable_integrity_monitoring = var.node_config.shielded_instance_config.enable_integrity_monitoring
-      }
-    }
-    dynamic "taint" {
-      for_each = var.taints
-      content {
-        key    = taint.key
-        value  = taint.value.value
-        effect = taint.effect
       }
     }
     dynamic "workload_metadata_config" {

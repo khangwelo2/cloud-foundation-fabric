@@ -186,17 +186,10 @@ variable "tags" {
 
 variable "taints" {
   description = "Kubernetes taints applied to all nodes."
-  type = map(object({
+  type = list(object({
+    key    = string
     value  = string
     effect = string
   }))
-  nullable = false
-  default  = {}
-  validation {
-    condition = alltrue([
-      for k, v in var.taints :
-      contains(["NO_SCHEDULE", "PREFER_NO_SCHEDULE", "NO_EXECUTE"], v.effect)
-    ])
-    error_message = "Invalid taint effect."
-  }
+  default = null
 }

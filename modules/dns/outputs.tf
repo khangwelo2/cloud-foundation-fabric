@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,30 +16,35 @@
 
 output "dns_keys" {
   description = "DNSKEY and DS records of DNSSEC-signed managed zones."
-  value       = try(data.google_dns_keys.dns_keys, null)
+  value       = local.dns_keys
 }
 
 output "domain" {
   description = "The DNS zone domain."
-  value       = local.managed_zone.dns_name
+  value       = try(local.zone.dns_name, null)
 }
 
 output "id" {
   description = "Fully qualified zone id."
-  value       = local.managed_zone.id
+  value       = try(local.zone.id, null)
 }
 
 output "name" {
   description = "The DNS zone name."
-  value       = local.managed_zone.name
+  value       = try(local.zone.name, null)
 }
 
 output "name_servers" {
   description = "The DNS zone name servers."
-  value       = local.managed_zone.name_servers
+  value       = try(local.zone.name_servers, null)
+}
+
+output "type" {
+  description = "The DNS zone type."
+  value       = var.type
 }
 
 output "zone" {
   description = "DNS zone resource."
-  value       = local.managed_zone
+  value       = local.zone
 }

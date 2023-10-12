@@ -61,15 +61,7 @@ resource "google_compute_router" "encrypted" {
   region                        = var.region
   encrypted_interconnect_router = true
   bgp {
-    asn            = var.router_config.asn
-    advertise_mode = var.dedicated_interconnect_config == null ? "DEFAULT" : "CUSTOM"
-    dynamic "advertised_ip_ranges" {
-      for_each = var.dedicated_interconnect_config == null ? var.ipsec_gateway_ip_ranges : {}
-      content {
-        description = advertised_ip_ranges.key
-        range       = advertised_ip_ranges.value
-      }
-    }
+    asn = var.router_config.asn
   }
 }
 
@@ -114,14 +106,13 @@ resource "google_compute_router_interface" "default" {
 }
 
 resource "google_compute_router_peer" "default" {
-  count                     = var.dedicated_interconnect_config != null ? 1 : 0
   name                      = "${var.name}-peer"
   project                   = var.project_id
   router                    = local.router
   region                    = var.region
   peer_ip_address           = split("/", google_compute_interconnect_attachment.default.customer_router_ip_address)[0]
   peer_asn                  = var.peer_asn
-  interface                 = google_compute_router_interface.default[0].name
+  interface                 = "${var.name}-intf"
   advertised_route_priority = 100
   advertise_mode            = "CUSTOM"
 

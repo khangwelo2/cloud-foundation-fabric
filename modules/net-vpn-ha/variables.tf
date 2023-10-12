@@ -30,7 +30,6 @@ variable "peer_gateways" {
     external = optional(object({
       redundancy_type = string
       interfaces      = list(string)
-      description     = optional(string, "Terraform managed external VPN gateway")
     }))
     gcp = optional(string)
   }))
@@ -104,9 +103,7 @@ variable "vpn_gateway" {
 }
 
 variable "vpn_gateway_create" {
-  description = "Create HA VPN Gateway. Set to null to avoid creation."
-  type = object({
-    description = optional(string, "Terraform managed external VPN gateway")
-  })
-  default = {}
+  description = "Create HA VPN Gateway."
+  type        = bool
+  default     = true
 }

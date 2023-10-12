@@ -43,36 +43,6 @@ variable "iam" {
   default     = {}
 }
 
-variable "iam_bindings" {
-  description = "Authoritative IAM bindings in {KEY => {role = ROLE, members = [], condition = {}}}. Keys are arbitrary."
-  type = map(object({
-    members = list(string)
-    role    = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
-}
-
-variable "iam_bindings_additive" {
-  description = "Individual additive IAM bindings. Keys are arbitrary."
-  type = map(object({
-    member = string
-    role   = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
-}
-
 variable "labels" {
   description = "Labels to be attached to all buckets."
   type        = map(string)
@@ -160,32 +130,6 @@ variable "notification_config" {
     object_name_prefix = optional(string)
   })
   default = null
-}
-
-variable "objects_to_upload" {
-  description = "Objects to be uploaded to bucket."
-  type = map(object({
-    name                = string
-    metadata            = optional(map(string))
-    content             = optional(string)
-    source              = optional(string)
-    cache_control       = optional(string)
-    content_disposition = optional(string)
-    content_encoding    = optional(string)
-    content_language    = optional(string)
-    content_type        = optional(string)
-    event_based_hold    = optional(bool)
-    temporary_hold      = optional(bool)
-    detect_md5hash      = optional(string)
-    storage_class       = optional(string)
-    kms_key_name        = optional(string)
-    customer_encryption = optional(object({
-      encryption_algorithm = optional(string)
-      encryption_key       = string
-    }))
-  }))
-  default  = {}
-  nullable = false
 }
 
 variable "prefix" {

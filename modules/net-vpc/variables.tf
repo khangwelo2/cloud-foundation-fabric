@@ -21,7 +21,7 @@ variable "auto_create_subnetworks" {
 }
 
 variable "create_googleapis_routes" {
-  description = "Toggle creation of googleapis private/restricted routes. Disabled when vpc creation is turned off, or when set to null."
+  description = "Toggle creation of googleapis private/restricted routes. Set to null to disable creation."
   type = object({
     private      = optional(bool, true)
     private-6    = optional(bool, false)
@@ -29,6 +29,12 @@ variable "create_googleapis_routes" {
     restricted-6 = optional(bool, false)
   })
   default = {}
+}
+
+variable "data_folder" {
+  description = "An optional folder containing the subnet configurations in YaML format."
+  type        = string
+  default     = null
 }
 
 variable "delete_default_routes_on_create" {
@@ -56,14 +62,6 @@ variable "dns_policy" {
   default = null
 }
 
-variable "factories_config" {
-  description = "Paths to data files and folders that enable factory functionality."
-  type = object({
-    subnets_folder = string
-  })
-  default = null
-}
-
 variable "firewall_policy_enforcement_order" {
   description = "Order that Firewall Rules and Firewall Policies are evaluated. Can be either 'BEFORE_CLASSIC_FIREWALL' or 'AFTER_CLASSIC_FIREWALL'."
   type        = string
@@ -74,16 +72,6 @@ variable "firewall_policy_enforcement_order" {
     condition     = var.firewall_policy_enforcement_order == "BEFORE_CLASSIC_FIREWALL" || var.firewall_policy_enforcement_order == "AFTER_CLASSIC_FIREWALL"
     error_message = "Enforcement order must be BEFORE_CLASSIC_FIREWALL or AFTER_CLASSIC_FIREWALL."
   }
-}
-
-variable "ipv6_config" {
-  description = "Optional IPv6 configuration for this network."
-  type = object({
-    enable_ula_internal = optional(bool)
-    internal_range      = optional(string)
-  })
-  nullable = false
-  default  = {}
 }
 
 variable "mtu" {
@@ -116,10 +104,9 @@ variable "project_id" {
 variable "psa_config" {
   description = "The Private Service Access configuration for Service Networking."
   type = object({
-    ranges         = map(string)
-    export_routes  = optional(bool, false)
-    import_routes  = optional(bool, false)
-    peered_domains = optional(list(string), [])
+    ranges        = map(string)
+    export_routes = optional(bool, false)
+    import_routes = optional(bool, false)
   })
   default = null
 }
@@ -127,7 +114,6 @@ variable "psa_config" {
 variable "routes" {
   description = "Network routes, keyed by name."
   type = map(object({
-    description   = optional(string, "Terraform-managed.")
     dest_range    = string
     next_hop_type = string # gateway, instance, ip, vpn_tunnel, ilb
     next_hop      = string
@@ -167,6 +153,19 @@ variable "shared_vpc_service_projects" {
   default     = []
 }
 
+variable "subnet_iam" {
+  description = "Subnet IAM bindings in {REGION/NAME => {ROLE => [MEMBERS]} format."
+  type        = map(map(list(string)))
+  default     = {}
+}
+
+variable "subnet_iam_additive" {
+  description = "Subnet IAM additive bindings in {REGION/NAME => {ROLE => [MEMBERS]}} format."
+  type        = map(map(list(string)))
+  default     = {}
+  nullable    = false
+}
+
 variable "subnets" {
   description = "Subnet configuration."
   type = list(object({
@@ -184,68 +183,24 @@ variable "subnets" {
       metadata_fields = optional(list(string))
     }))
     ipv6 = optional(object({
-      access_type = optional(string, "INTERNAL")
-      # this field is marked for internal use in the API documentation
-      # enable_private_access = optional(string)
+      access_type           = optional(string)
+      enable_private_access = optional(bool, true)
     }))
     secondary_ip_ranges = optional(map(string))
-
-    iam = optional(map(list(string)), {})
-    iam_bindings = optional(map(object({
-      role    = string
-      members = list(string)
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
-    iam_bindings_additive = optional(map(object({
-      member = string
-      role   = string
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
   }))
-  default  = []
-  nullable = false
+  default = []
 }
 
 variable "subnets_proxy_only" {
-  description = "List of proxy-only subnets for Regional HTTPS or Internal HTTPS load balancers. Note: Only one proxy-only subnet for each VPC network in each region can be active."
+  description = "List of proxy-only subnets for Regional HTTPS  or Internal HTTPS load balancers. Note: Only one proxy-only subnet for each VPC network in each region can be active."
   type = list(object({
     name          = string
     ip_cidr_range = string
     region        = string
     description   = optional(string)
-    active        = optional(bool, true)
-    global        = optional(bool, false)
-
-    iam = optional(map(list(string)), {})
-    iam_bindings = optional(map(object({
-      role    = string
-      members = list(string)
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
-    iam_bindings_additive = optional(map(object({
-      member = string
-      role   = string
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
+    active        = bool
   }))
-  default  = []
-  nullable = false
+  default = []
 }
 
 variable "subnets_psc" {
@@ -255,29 +210,8 @@ variable "subnets_psc" {
     ip_cidr_range = string
     region        = string
     description   = optional(string)
-
-    iam = optional(map(list(string)), {})
-    iam_bindings = optional(map(object({
-      role    = string
-      members = list(string)
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
-    iam_bindings_additive = optional(map(object({
-      member = string
-      role   = string
-      condition = optional(object({
-        expression  = string
-        title       = string
-        description = optional(string)
-      }))
-    })), {})
   }))
-  default  = []
-  nullable = false
+  default = []
 }
 
 variable "vpc_create" {

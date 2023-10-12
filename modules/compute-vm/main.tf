@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,51 +35,32 @@ locals {
     : "MIGRATE"
   )
   region = join("-", slice(split("-", var.zone), 0, 2))
-  service_account = var.service_account == null ? null : {
-    email = (
-      var.service_account.auto_create
+  service_account_email = (
+    var.service_account_create
+    ? (
+      length(google_service_account.service_account) > 0
       ? google_service_account.service_account[0].email
-      : var.service_account.email
+      : null
     )
-    scopes = (
-      var.service_account.scopes != null ? var.service_account.scopes : (
-        var.service_account.email == null && !var.service_account.auto_create
-        # default scopes for Compute default SA
-        ? [
-          "https://www.googleapis.com/auth/devstorage.read_only",
-          "https://www.googleapis.com/auth/logging.write",
-          "https://www.googleapis.com/auth/monitoring.write"
-        ]
-        # default scopes for own SA
-        : [
-          "https://www.googleapis.com/auth/cloud-platform",
-          "https://www.googleapis.com/auth/userinfo.email"
-        ]
-      )
+    : var.service_account
+  )
+  service_account_scopes = (
+    length(var.service_account_scopes) > 0
+    ? var.service_account_scopes
+    : (
+      var.service_account_create
+      ? [
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/userinfo.email"
+      ]
+      : [
+        "https://www.googleapis.com/auth/devstorage.read_only",
+        "https://www.googleapis.com/auth/logging.write",
+        "https://www.googleapis.com/auth/monitoring.write"
+      ]
     )
-  }
+  )
   termination_action = var.options.spot ? coalesce(var.options.termination_action, "STOP") : null
-}
-
-resource "google_compute_disk" "boot" {
-  count   = !var.create_template && var.boot_disk.use_independent_disk ? 1 : 0
-  project = var.project_id
-  zone    = var.zone
-  name    = "${var.name}-boot"
-  type    = var.boot_disk.initialize_params.type
-  size    = var.boot_disk.initialize_params.size
-  image   = var.boot_disk.initialize_params.image
-  labels = merge(var.labels, {
-    disk_name = "boot"
-    disk_type = var.boot_disk.initialize_params.type
-  })
-  dynamic "disk_encryption_key" {
-    for_each = var.encryption != null ? [""] : []
-    content {
-      raw_key           = var.encryption.disk_encryption_key_raw
-      kms_key_self_link = var.encryption.kms_key_self_link
-    }
-  }
 }
 
 resource "google_compute_disk" "disks" {
@@ -152,18 +133,13 @@ resource "google_compute_instance" "default" {
   enable_display            = var.enable_display
   labels                    = var.labels
   metadata                  = var.metadata
-  resource_policies         = local.ischedule_attach
 
   dynamic "attached_disk" {
     for_each = local.attached_disks_zonal
     iterator = config
     content {
-      device_name = (
-        config.value.device_name != null
-        ? config.value.device_name
-        : config.value.name
-      )
-      mode = config.value.options.mode
+      device_name = config.value.device_name != null ? config.value.device_name : config.value.name
+      mode        = config.value.options.mode
       source = (
         config.value.source_type == "attach"
         ? config.value.source
@@ -176,45 +152,23 @@ resource "google_compute_instance" "default" {
     for_each = local.attached_disks_regional
     iterator = config
     content {
-      device_name = (
-        config.value.device_name != null
-        ? config.value.device_name
-        : config.value.name
-      )
-      mode = config.value.options.mode
+      device_name = config.value.device_name != null ? config.value.device_name : config.value.name
+      mode        = config.value.options.mode
       source = (
         config.value.source_type == "attach"
         ? config.value.source
-        : google_compute_region_disk.disks[config.key].id
+        : google_compute_region_disk.disks[config.key].name
       )
     }
   }
 
   boot_disk {
-    auto_delete = (
-      var.boot_disk.use_independent_disk
-      ? false
-      : var.boot_disk.auto_delete
-    )
-    source = (
-      var.boot_disk.use_independent_disk
-      ? google_compute_disk.boot.0.id
-      : var.boot_disk.source
-    )
-    disk_encryption_key_raw = (
-      var.encryption != null ? var.encryption.disk_encryption_key_raw : null
-    )
-    kms_key_self_link = (
-      var.encryption != null ? var.encryption.kms_key_self_link : null
-    )
+    auto_delete             = var.boot_disk.auto_delete
+    source                  = var.boot_disk.source
+    disk_encryption_key_raw = var.encryption != null ? var.encryption.disk_encryption_key_raw : null
+    kms_key_self_link       = var.encryption != null ? var.encryption.kms_key_self_link : null
     dynamic "initialize_params" {
-      for_each = (
-        var.boot_disk.initialize_params == null
-        ||
-        var.boot_disk.use_independent_disk
-        ? []
-        : [""]
-      )
+      for_each = var.boot_disk.initialize_params == null ? [] : [""]
       content {
         image = var.boot_disk.initialize_params.image
         size  = var.boot_disk.initialize_params.size
@@ -273,12 +227,9 @@ resource "google_compute_instance" "default" {
     }
   }
 
-  dynamic "service_account" {
-    for_each = var.service_account == null ? [] : [""]
-    content {
-      email  = local.service_account.email
-      scopes = local.service_account.scopes
-    }
+  service_account {
+    email  = local.service_account_email
+    scopes = local.service_account_scopes
   }
 
   dynamic "shielded_instance_config" {
@@ -400,12 +351,9 @@ resource "google_compute_instance_template" "default" {
     provisioning_model          = var.options.spot ? "SPOT" : "STANDARD"
   }
 
-  dynamic "service_account" {
-    for_each = var.service_account == null ? [] : [""]
-    content {
-      email  = local.service_account.email
-      scopes = local.service_account.scopes
-    }
+  service_account {
+    email  = local.service_account_email
+    scopes = local.service_account_scopes
   }
 
   dynamic "shielded_instance_config" {
@@ -446,7 +394,7 @@ resource "google_compute_instance_group" "unmanaged" {
 }
 
 resource "google_service_account" "service_account" {
-  count        = try(var.service_account.auto_create, null) == true ? 1 : 0
+  count        = var.service_account_create ? 1 : 0
   project      = var.project_id
   account_id   = "tf-vm-${var.name}"
   display_name = "Terraform VM ${var.name}."

@@ -28,11 +28,36 @@ variable "custom_roles" {
   nullable    = false
 }
 
-variable "firewall_policy" {
-  description = "Hierarchical firewall policies to associate to the organization."
+variable "firewall_policies" {
+  description = "Hierarchical firewall policy rules created in the organization."
+  type = map(map(object({
+    action                  = string
+    description             = string
+    direction               = string
+    logging                 = bool
+    ports                   = map(list(string))
+    priority                = number
+    ranges                  = list(string)
+    target_resources        = list(string)
+    target_service_accounts = list(string)
+    # preview                 = bool
+  })))
+  default = {}
+}
+
+variable "firewall_policy_association" {
+  description = "The hierarchical firewall policy to associate to this folder. Must be either a key in the `firewall_policies` map or the id of a policy defined somewhere else."
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}
+
+variable "firewall_policy_factory" {
+  description = "Configuration for the firewall policy factory."
   type = object({
-    name   = string
-    policy = string
+    cidr_file   = string
+    policy_name = string
+    rules_file  = string
   })
   default = null
 }
@@ -51,49 +76,47 @@ variable "iam" {
   nullable    = false
 }
 
-variable "iam_bindings" {
-  description = "Authoritative IAM bindings in {KEY => {role = ROLE, members = [], condition = {}}}. Keys are arbitrary."
-  type = map(object({
-    members = list(string)
-    role    = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
-}
-
-variable "iam_bindings_additive" {
-  description = "Individual additive IAM bindings. Keys are arbitrary."
-  type = map(object({
-    member = string
-    role   = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
-}
-
-variable "logging_data_access" {
-  description = "Control activation of data access logs. Format is service => { log type => [exempted members]}. The special 'allServices' key denotes configuration for all services."
-  type        = map(map(list(string)))
-  nullable    = false
+variable "iam_additive" {
+  description = "Non authoritative IAM bindings, in {ROLE => [MEMBERS]} format."
+  type        = map(list(string))
   default     = {}
-  validation {
-    condition = alltrue(flatten([
-      for k, v in var.logging_data_access : [
-        for kk, vv in v : contains(["DATA_READ", "DATA_WRITE", "ADMIN_READ"], kk)
-      ]
-    ]))
-    error_message = "Log type keys for each service can only be one of 'DATA_READ', 'DATA_WRITE', 'ADMIN_READ'."
-  }
+  nullable    = false
+}
+
+variable "iam_additive_members" {
+  description = "IAM additive bindings in {MEMBERS => [ROLE]} format. This might break if members are dynamic values."
+  type        = map(list(string))
+  default     = {}
+  nullable    = false
+}
+
+variable "iam_audit_config" {
+  description = "Service audit logging configuration. Service as key, map of log permission (eg DATA_READ) and excluded members as value for each service."
+  type        = map(map(list(string)))
+  default     = {}
+  nullable    = false
+  # default = {
+  #   allServices = {
+  #     DATA_READ = ["user:me@example.org"]
+  #   }
+  # }
+}
+
+variable "iam_audit_config_authoritative" {
+  description = "IAM Authoritative service audit logging configuration. Service as key, map of log permission (eg DATA_READ) and excluded members as value for each service. Audit config should also be authoritative when using authoritative bindings. Use with caution."
+  type        = map(map(list(string)))
+  default     = null
+  # default = {
+  #   allServices = {
+  #     DATA_READ = ["user:me@example.org"]
+  #   }
+  # }
+}
+
+variable "iam_bindings_authoritative" {
+  description = "IAM authoritative bindings, in {ROLE => [MEMBERS]} format. Roles and members not explicitly listed will be cleared. Bindings should also be authoritative when using authoritative audit config. Use with caution."
+  type        = map(list(string))
+  default     = null
 }
 
 variable "logging_exclusions" {

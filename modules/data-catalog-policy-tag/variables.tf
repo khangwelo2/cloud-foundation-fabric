@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,34 +38,16 @@ variable "iam" {
   default     = {}
 }
 
-variable "iam_bindings" {
-  description = "Authoritative IAM bindings in {KEY => {role = ROLE, members = [], condition = {}}}. Keys are arbitrary."
-  type = map(object({
-    members = list(string)
-    role    = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
+variable "iam_additive" {
+  description = "IAM additive bindings in {ROLE => [MEMBERS]} format."
+  type        = map(list(string))
+  default     = {}
 }
 
-variable "iam_bindings_additive" {
-  description = "Individual additive IAM bindings. Keys are arbitrary."
-  type = map(object({
-    member = string
-    role   = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
+variable "iam_additive_members" {
+  description = "IAM additive bindings in {MEMBERS => [ROLE]} format. This might break if members are dynamic values."
+  type        = map(list(string))
+  default     = {}
 }
 
 variable "location" {
@@ -91,15 +73,11 @@ variable "prefix" {
 
 variable "project_id" {
   description = "GCP project id."
-  type        = string
 }
 
 variable "tags" {
   description = "List of Data Catalog Policy tags to be created with optional IAM binging configuration in {tag => {ROLE => [MEMBERS]}} format."
-  type = map(object({
-    description = optional(string)
-    iam         = optional(map(list(string)), {})
-  }))
-  nullable = false
-  default  = {}
+  type        = map(map(list(string)))
+  nullable    = false
+  default     = {}
 }

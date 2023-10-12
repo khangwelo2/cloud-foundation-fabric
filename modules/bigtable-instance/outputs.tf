@@ -24,7 +24,7 @@ output "id" {
 }
 
 output "instance" {
-  description = "BigTable instance."
+  description = "BigTable intance."
   value       = google_bigtable_instance.default
   depends_on = [
     google_bigtable_instance_iam_binding.default,

@@ -16,7 +16,7 @@
 
 locals {
   bucket = (
-    var.bucket_config == null
+    var.bucket_name != null
     ? var.bucket_name
     : (
       length(google_storage_bucket.bucket) > 0
@@ -30,11 +30,10 @@ locals {
     ? google_service_account.service_account[0].email
     : var.service_account
   )
-  trigger_sa_create = (
-    try(var.trigger_config.service_account_create, false) == true
-  )
-  trigger_sa_email = try(
-    google_service_account.trigger_service_account[0].email, null
+  trigger_service_account_email = (
+    try(var.trigger_config.service_account_create, false)
+    ? google_service_account.trigger_service_account[0].email
+    : null
   )
   vpc_connector = (
     var.vpc_connector == null
@@ -88,12 +87,12 @@ resource "google_cloudfunctions2_function" "function" {
         for_each = var.trigger_config.event_filters
         iterator = event_filter
         content {
-          attribute = event_filter.value.attribute
-          value     = event_filter.value.value
-          operator  = event_filter.value.operator
+          attribute = event_filter.attribute
+          value     = event_filter.value
+          operator  = event_filter.operator
         }
       }
-      service_account_email = local.trigger_sa_email
+      service_account_email = var.trigger_config.service_account_email
       retry_policy          = var.trigger_config.retry_policy
     }
   }
@@ -133,8 +132,8 @@ resource "google_cloudfunctions2_function" "function" {
           for_each = secret.value.versions
           iterator = version
           content {
-            path    = split(":", version.value)[1]
-            version = split(":", version.value)[0]
+            path    = split(":", version)[1]
+            version = split(":", version)[0]
           }
         }
       }
@@ -143,48 +142,13 @@ resource "google_cloudfunctions2_function" "function" {
   labels = var.labels
 }
 
-resource "google_cloudfunctions2_function_iam_binding" "binding" {
-  for_each = {
-    for k, v in var.iam : k => v if k != "roles/run.invoker"
-  }
+resource "google_cloudfunctions2_function_iam_binding" "default" {
+  for_each       = var.iam
   project        = var.project_id
   location       = google_cloudfunctions2_function.function.location
   cloud_function = google_cloudfunctions2_function.function.name
   role           = each.key
   members        = each.value
-}
-
-resource "google_cloud_run_service_iam_binding" "invoker" {
-  # cloud run resources are needed for invoker role to the underlying service
-  count = (
-    lookup(var.iam, "roles/run.invoker", null) != null
-  ) ? 1 : 0
-  project  = var.project_id
-  location = google_cloudfunctions2_function.function.location
-  service  = google_cloudfunctions2_function.function.name
-  role     = "roles/run.invoker"
-  members = distinct(compact(concat(
-    lookup(var.iam, "roles/run.invoker", []),
-    (
-      !local.trigger_sa_create
-      ? []
-      : ["serviceAccount:${local.trigger_sa_email}"]
-    )
-  )))
-}
-
-resource "google_cloud_run_service_iam_member" "invoker" {
-  # if authoritative invoker role is not present and we create trigger sa
-  # use additive binding to grant it the role
-  count = (
-    lookup(var.iam, "roles/run.invoker", null) == null &&
-    local.trigger_sa_create
-  ) ? 1 : 0
-  project  = var.project_id
-  location = google_cloudfunctions2_function.function.location
-  service  = google_cloudfunctions2_function.function.name
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${local.trigger_sa_email}"
 }
 
 resource "google_storage_bucket" "bucket" {
@@ -240,8 +204,19 @@ resource "google_service_account" "service_account" {
 }
 
 resource "google_service_account" "trigger_service_account" {
-  count        = local.trigger_sa_create ? 1 : 0
+  count = (
+    try(var.trigger_config.service_account_create, false) == true ? 1 : 0
+  )
   project      = var.project_id
   account_id   = "tf-cf-trigger-${var.name}"
   display_name = "Terraform trigger for Cloud Function ${var.name}."
+}
+
+resource "google_project_iam_member" "trigger_iam" {
+  count = (
+    try(var.trigger_config.service_account_create, false) == true ? 1 : 0
+  )
+  project = var.project_id
+  member  = "serviceAccount:${google_service_account.trigger_service_account[0].email}"
+  role    = "roles/run.invoker"
 }

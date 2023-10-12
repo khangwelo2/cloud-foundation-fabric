@@ -1,0 +1,1 @@
+envoy_image = "envoyproxy/envoy:v1.15.5"

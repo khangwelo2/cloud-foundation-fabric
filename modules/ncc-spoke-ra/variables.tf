@@ -21,17 +21,12 @@ variable "data_transfer" {
 }
 
 variable "hub" {
-  description = "The NCC hub. You should either provide an existing hub id or a hub name if create is true."
+  description = "The name of the NCC hub to create or use."
   type = object({
     create      = optional(bool, false)
     description = optional(string)
-    id          = optional(string)
-    name        = optional(string)
+    name        = string
   })
-  validation {
-    condition     = var.hub.create && var.hub.name != null || var.hub.create == false && var.hub.id != null
-    error_message = "Name is required for configuring new ncc hub while referencing existing hub requires id."
-  }
 }
 
 variable "name" {

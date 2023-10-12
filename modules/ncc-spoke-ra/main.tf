@@ -35,7 +35,7 @@ resource "google_network_connectivity_hub" "hub" {
 
 resource "google_network_connectivity_spoke" "spoke-ra" {
   project  = var.project_id
-  hub      = try(google_network_connectivity_hub.hub[0].id, var.hub.id)
+  hub      = try(google_network_connectivity_hub.hub[0].name, var.hub.name)
   location = var.region
   name     = var.name
   linked_router_appliance_instances {
@@ -107,10 +107,6 @@ resource "google_compute_router_peer" "peer_0" {
   peer_asn                  = var.router_config.peer_asn
   peer_ip_address           = each.value.ip
   router_appliance_instance = each.value.vm
-
-  depends_on = [
-    google_network_connectivity_spoke.spoke-ra
-  ]
 }
 
 resource "google_compute_router_peer" "peer_1" {
@@ -126,8 +122,4 @@ resource "google_compute_router_peer" "peer_1" {
   peer_asn                  = var.router_config.peer_asn
   peer_ip_address           = each.value.ip
   router_appliance_instance = each.value.vm
-
-  depends_on = [
-    google_network_connectivity_spoke.spoke-ra
-  ]
 }

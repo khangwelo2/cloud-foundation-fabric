@@ -42,7 +42,6 @@ variable "log_analytics" {
   type = object({
     enable          = optional(bool, false)
     dataset_link_id = optional(string)
-    description     = optional(string, "Log Analytics Dataset")
   })
   nullable = false
   default  = {}

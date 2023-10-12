@@ -21,14 +21,13 @@ resource "google_compute_global_address" "global" {
 }
 
 resource "google_compute_address" "external" {
-  provider     = google-beta
   for_each     = var.external_addresses
   project      = var.project_id
   name         = each.key
-  description  = each.value.description
+  description  = "Terraform managed."
   address_type = "EXTERNAL"
-  region       = each.value.region
-  labels       = each.value.labels
+  region       = each.value
+  # labels       = lookup(var.external_address_labels, each.key, {})
 }
 
 resource "google_compute_address" "internal" {
@@ -36,7 +35,7 @@ resource "google_compute_address" "internal" {
   for_each     = var.internal_addresses
   project      = var.project_id
   name         = each.key
-  description  = each.value.description
+  description  = "Terraform managed."
   address_type = "INTERNAL"
   region       = each.value.region
   subnetwork   = each.value.subnetwork
@@ -50,7 +49,7 @@ resource "google_compute_global_address" "psc" {
   for_each     = var.psc_addresses
   project      = var.project_id
   name         = each.key
-  description  = each.value.description
+  description  = "Terraform managed."
   address      = try(each.value.address, null)
   address_type = "INTERNAL"
   network      = each.value.network
@@ -62,24 +61,11 @@ resource "google_compute_global_address" "psa" {
   for_each      = var.psa_addresses
   project       = var.project_id
   name          = each.key
-  description   = each.value.description
+  description   = "Terraform managed."
   address       = each.value.address
   address_type  = "INTERNAL"
   network       = each.value.network
   prefix_length = each.value.prefix_length
   purpose       = "VPC_PEERING"
   # labels       = lookup(var.internal_address_labels, each.key, {})
-}
-
-resource "google_compute_address" "ipsec_interconnect" {
-  for_each      = var.ipsec_interconnect_addresses
-  project       = var.project_id
-  name          = each.key
-  description   = each.value.description
-  address       = each.value.address
-  address_type  = "INTERNAL"
-  region        = each.value.region
-  network       = each.value.network
-  prefix_length = each.value.prefix_length
-  purpose       = "IPSEC_INTERCONNECT"
 }

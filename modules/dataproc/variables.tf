@@ -49,7 +49,6 @@ variable "dataproc_config" {
         num_instances    = number
         machine_type     = string
         min_cpu_platform = string
-        image_uri        = string
         disk_config = optional(object({
           boot_disk_type    = string
           boot_disk_size_gb = number
@@ -196,34 +195,11 @@ variable "iam" {
   nullable    = false
 }
 
-variable "iam_bindings" {
-  description = "Authoritative IAM bindings in {KEY => {role = ROLE, members = [], condition = {}}}. Keys are arbitrary."
-  type = map(object({
-    members = list(string)
-    role    = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
-}
-
-variable "iam_bindings_additive" {
-  description = "Individual additive IAM bindings. Keys are arbitrary."
-  type = map(object({
-    member = string
-    role   = string
-    condition = optional(object({
-      expression  = string
-      title       = string
-      description = optional(string)
-    }))
-  }))
-  nullable = false
-  default  = {}
+variable "iam_additive" {
+  description = "IAM additive bindings in {ROLE => [MEMBERS]} format."
+  type        = map(list(string))
+  default     = {}
+  nullable    = false
 }
 
 variable "labels" {

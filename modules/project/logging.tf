@@ -26,20 +26,6 @@ locals {
   }
 }
 
-resource "google_project_iam_audit_config" "default" {
-  for_each = var.logging_data_access
-  project  = local.project.project_id
-  service  = each.key
-  dynamic "audit_log_config" {
-    for_each = each.value
-    iterator = config
-    content {
-      log_type         = config.key
-      exempted_members = config.value
-    }
-  }
-}
-
 resource "google_logging_project_sink" "sink" {
   for_each               = var.logging_sinks
   name                   = each.key
@@ -68,8 +54,7 @@ resource "google_logging_project_sink" "sink" {
 
   depends_on = [
     google_project_iam_binding.authoritative,
-    google_project_iam_binding.bindings,
-    google_project_iam_member.bindings
+    google_project_iam_member.additive
   ]
 }
 

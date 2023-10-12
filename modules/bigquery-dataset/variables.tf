@@ -36,35 +36,6 @@ variable "access_identities" {
   default     = {}
 }
 
-variable "authorized_datasets" {
-  description = "An array of datasets to be authorized on the dataset."
-  type = list(object({
-    dataset_id = string,
-    project_id = string,
-  }))
-  default = []
-}
-
-variable "authorized_routines" {
-  description = "An array of authorized routine to be authorized on the dataset."
-  type = list(object({
-    project_id = string,
-    dataset_id = string,
-    routine_id = string
-  }))
-  default = []
-}
-
-variable "authorized_views" {
-  description = "An array of views to be authorized on the dataset."
-  type = list(object({
-    dataset_id = string,
-    project_id = string,
-    table_id   = string # this is the view id, but we keep table_id to stay consistent as the resource
-  }))
-  default = []
-}
-
 variable "dataset_access" {
   description = "Set access in the dataset resource instead of using separate resources."
   type        = bool
@@ -112,39 +83,6 @@ variable "location" {
   default     = "EU"
 }
 
-variable "materialized_views" {
-  description = "Materialized views definitions."
-  type = map(object({
-    query                            = string
-    deletion_protection              = optional(bool)
-    description                      = optional(string, "Terraform managed.")
-    friendly_name                    = optional(string)
-    labels                           = optional(map(string), {})
-    enable_refresh                   = optional(bool)
-    refresh_interval_ms              = optional(bool)
-    allow_non_incremental_definition = optional(bool)
-    options = optional(object({
-      clustering      = optional(list(string))
-      expiration_time = optional(number)
-    }), {})
-    partitioning = optional(object({
-      field = optional(string)
-      range = optional(object({
-        end      = number
-        interval = number
-        start    = number
-      }))
-      time = optional(object({
-        type                     = string
-        expiration_ms            = optional(number)
-        field                    = optional(string)
-        require_partition_filter = optional(bool)
-      }))
-    }))
-  }))
-  default = {}
-}
-
 variable "options" {
   description = "Dataset options."
   type = object({
@@ -154,7 +92,6 @@ variable "options" {
     delete_contents_on_destroy      = optional(bool, false)
     is_case_insensitive             = optional(bool)
     max_time_travel_hours           = optional(number, 168)
-    storage_billing_model           = optional(string)
   })
   default = {}
 }
@@ -167,30 +104,27 @@ variable "project_id" {
 variable "tables" {
   description = "Table definitions. Options and partitioning default to null. Partitioning can only use `range` or `time`, set the unused one to null."
   type = map(object({
-    deletion_protection = optional(bool)
-    description         = optional(string, "Terraform managed.")
-    friendly_name       = optional(string)
-    labels              = optional(map(string), {})
-    schema              = optional(string)
-    options = optional(object({
-      clustering      = optional(list(string))
-      encryption_key  = optional(string)
-      expiration_time = optional(number)
-    }), {})
-    partitioning = optional(object({
-      field = optional(string)
-      range = optional(object({
+    friendly_name = string
+    labels        = map(string)
+    options = object({
+      clustering      = list(string)
+      encryption_key  = string
+      expiration_time = number
+    })
+    partitioning = object({
+      field = string
+      range = object({
         end      = number
         interval = number
         start    = number
-      }))
-      time = optional(object({
-        type                     = string
-        expiration_ms            = optional(number)
-        field                    = optional(string)
-        require_partition_filter = optional(bool)
-      }))
-    }))
+      })
+      time = object({
+        expiration_ms = number
+        type          = string
+      })
+    })
+    schema              = string
+    deletion_protection = bool
   }))
   default = {}
 }
@@ -198,12 +132,11 @@ variable "tables" {
 variable "views" {
   description = "View definitions."
   type = map(object({
+    friendly_name       = string
+    labels              = map(string)
     query               = string
-    deletion_protection = optional(bool)
-    description         = optional(string, "Terraform managed.")
-    friendly_name       = optional(string)
-    labels              = optional(map(string), {})
-    use_legacy_sql      = optional(bool)
+    use_legacy_sql      = bool
+    deletion_protection = bool
   }))
   default = {}
 }
